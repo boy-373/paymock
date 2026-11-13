@@ -1,0 +1,35 @@
+{
+  "name": "paymock",
+  "version": "0.1.1",
+  "description": "本地假微信支付：不用内网穿透、不用真商户号，在自己电脑上把支付流程跑通",
+  "keywords": [
+    "wechatpay",
+    "wxpay",
+    "mock",
+    "sandbox",
+    "payment",
+    "alipay",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "author": "刘扶阳 <1561852680@qq.com>",
+  "type": "commonjs",
+  "bin": {
+    "paymock": "bin/paymock.js"
+  },
+  "main": "src/server.js",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/paymock.js wechat",
+    "test": "node test/smoke.test.js"
+  },
+  "dependencies": {}
+}

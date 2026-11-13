@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>paymock · 本地支付控制台</title>
+<style>
+  :root{
+    --ink:#0e211e; --ink2:#3c5854; --ink3:#78938f;
+    --brand:#0d9488; --brand2:#10b981; --deep:#0b6b62;
+    --ok:#047857; --okbg:rgba(16,185,129,.12);
+    --warn:#b45309; --warnbg:rgba(251,191,36,.16);
+    --bad:#b91c1c; --badbg:rgba(239,68,68,.11);
+    --line:rgba(13,148,136,.16);
+    --card:rgba(255,255,255,.76);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#f2f8f6; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(50vw 50vw at 6% -8%, rgba(16,185,129,.20), transparent 62%),
+      radial-gradient(44vw 44vw at 98% 0%, rgba(56,189,248,.14), transparent 60%),
+      radial-gradient(60vw 40vw at 50% 110%, rgba(13,148,136,.10), transparent 66%);
+  }
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:22px 18px 60px;}
+
+  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px;}
+  .logo{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    background:linear-gradient(140deg,#0d9488,#10b981);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:16px;
+    box-shadow:0 6px 18px -6px rgba(13,148,136,.6);
+  }
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.01em;}
+  .sub{font-size:12.5px;color:var(--ink3);margin-top:1px;}
+  .spacer{flex:1;}
+  .dot{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ok);}
+  .dot i{width:7px;height:7px;border-radius:50%;background:var(--brand2);box-shadow:0 0 0 3px rgba(16,185,129,.18);animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  @media (prefers-reduced-motion:reduce){.dot i{animation:none}}
+
+  .card{
+    background:var(--card); backdrop-filter:blur(16px) saturate(1.08);
+    -webkit-backdrop-filter:blur(16px) saturate(1.08);
+    border:1px solid rgba(255,255,255,.75); border-radius:16px;
+    box-shadow:0 1px 2px rgba(11,107,98,.05), 0 12px 30px -14px rgba(11,107,98,.20);
+    padding:18px 20px; margin-bottom:16px;
+  }
+  .card h2{font-size:14px;margin:0 0 14px;font-weight:650;display:flex;align-items:center;gap:8px;}
+  .card h2 .n{font-size:11px;color:var(--ink3);font-weight:500;}
+
+  /* 连接信息 */
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;}
+  .kv .item{
+    background:rgba(255,255,255,.62); border:1px solid var(--line);
+    border-radius:10px; padding:11px 13px; min-width:0;
+  }
+  .kv .k{font-size:11.5px;color:var(--ink3);margin-bottom:3px;letter-spacing:.02em;}
+  .kv .v{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px;color:var(--deep);word-break:break-all;line-height:1.5;
+    cursor:pointer;user-select:all;
+  }
+  .kv .v:hover{color:var(--brand);}
+
+  /* 交易表 */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:660px;}
+  th{
+    text-align:left;padding:8px 10px;font-size:11px;letter-spacing:.06em;
+    color:var(--ink3);font-weight:600;text-transform:uppercase;
+    border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:11px 10px;border-bottom:1px solid rgba(13,148,136,.08);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:rgba(16,185,129,.045);}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;}
+  .amt{font-variant-numeric:tabular-nums;font-weight:600;}
+
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap;}
+  .tag.notpay{background:var(--warnbg);color:var(--warn);}
+  .tag.success{background:var(--okbg);color:var(--ok);}
+  .tag.closed{background:rgba(120,147,143,.15);color:var(--ink3);}
+  .tag.refund{background:rgba(99,102,241,.12);color:#4338ca;}
+
+  .acts{display:flex;gap:6px;flex-wrap:wrap;}
+  button{
+    font:inherit;font-size:12px;padding:5px 11px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.8);color:var(--ink2);
+    transition:transform .12s ease, background .16s ease, border-color .16s ease;
+    white-space:nowrap;
+  }
+  button:hover{background:#fff;border-color:rgba(13,148,136,.34);color:var(--deep);}
+  button:active{transform:scale(.97);}
+  button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  button.pay{background:linear-gradient(140deg,#0d9488,#10b981);color:#fff;border-color:transparent;font-weight:600;}
+  button.pay:hover{filter:brightness(1.06);color:#fff;}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+
+  .empty{text-align:center;padding:34px 10px;color:var(--ink3);font-size:13px;line-height:1.9;}
+  .empty code{background:rgba(13,148,136,.09);padding:2px 7px;border-radius:5px;font-size:12px;color:var(--deep);}
+
+  /* 日志 */
+  .logs{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;max-height:280px;overflow:auto;}
+  .logline{display:grid;grid-template-columns:58px 52px 1fr 46px;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(13,148,136,.06);}
+  .logline:last-child{border-bottom:none;}
+  .logline .t{color:var(--ink3);}
+  .logline .m{color:var(--brand);font-weight:600;}
+  .logline .p{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .logline .s{text-align:right;}
+  .s2{color:var(--ok);} .s4{color:var(--warn);} .s5{color:var(--bad);}
+
+  .notifyline{display:grid;grid-template-columns:1fr auto;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(13,148,136,.06);font-size:12.5px;}
+  .notifyline:last-child{border-bottom:none;}
+  .notifyline .u{color:var(--ink3);font-size:11.5px;word-break:break-all;margin-top:2px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+    background:rgba(14,33,30,.92);color:#e6fffa;padding:11px 20px;border-radius:11px;
+    font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+    z-index:99;max-width:90vw;text-align:center;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+  .toast.err{background:rgba(153,27,27,.94);}
+
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 50px;}
+    .card{padding:15px 14px;}
+    .kv{grid-template-columns:1fr;}
+    .logline{grid-template-columns:52px 44px 1fr 40px;font-size:11.5px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo" aria-hidden="true">P</div>
+    <div>
+      <h1>paymock 控制台</h1>
+      <div class="sub">本地假微信支付 · 数据只存在内存里，重启即清空</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="dot"><i aria-hidden="true"></i>运行中</div>
+  </header>
+
+  <section class="card">
+    <h2>接入信息 <span class="n">点任意一行可复制</span></h2>
+    <div class="kv">
+      <div class="item"><div class="k">接口地址 baseURL</div><div class="v" data-copy="http://localhost:4010">http://localhost:4010</div></div>
+      <div class="item"><div class="k">商户号 mchid</div><div class="v" id="v-mchid">—</div></div>
+      <div class="item"><div class="k">应用 appid</div><div class="v" id="v-appid">—</div></div>
+      <div class="item"><div class="k">APIv3 密钥（32 位）</div><div class="v" id="v-key">—</div></div>
+      <div class="item"><div class="k">平台证书序列号</div><div class="v" id="v-serial">—</div></div>
+      <div class="item"><div class="k">平台公钥（PEM）</div><div class="v" id="v-pubkey">点击查看 /__api/platform-pubkey</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>订单 <span class="n" id="txn-count"></span></h2>
+    <div class="tw">
+      <table>
+        <caption style="position:absolute;left:-9999px">本地模拟订单列表</caption>
+        <thead>
+          <tr>
+            <th scope="col">商户订单号</th>
+            <th scope="col">金额</th>
+            <th scope="col">状态</th>
+            <th scope="col">回调地址</th>
+            <th scope="col">通知次数</th>
+            <th scope="col">操作</th>
+          </tr>
+        </thead>
+        <tbody id="txn-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="txn-empty">
+      还没有订单。<br>
+      让你的代码向 <code>http://localhost:4010/v3/pay/transactions/native</code> 发一笔下单请求，这里就会出现。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>回调记录 <span class="n" id="notify-count"></span></h2>
+    <div id="notify-list"><div class="empty">还没有推送过回调。</div></div>
+  </section>
+
+  <section class="card">
+    <h2>请求日志 <span class="n">最近 60 条</span></h2>
+    <div class="logs" id="log-list"><div class="empty">暂无请求</div></div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var toastTimer = null;
+
+  function toast(msg, isErr){
+    var el = $('toast');
+    el.textContent = msg;
+    el.className = 'toast on' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.className = 'toast'; }, 2400);
+  }
+
+  function copy(text){
+    if (!text) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function(){ toast('已复制'); }, function(){ toast('复制失败，请手动选中', true); });
+        return;
+      }
+    } catch(_) {}
+    toast('浏览器不支持自动复制，请手动选中', true);
+  }
+
+  function money(fen){
+    return '¥' + (Number(fen || 0) / 100).toFixed(2);
+  }
+
+  function timeStr(ts){
+    if (!ts) return '';
+    var d = new Date(ts);
+    var p = function(n){ return n < 10 ? '0' + n : '' + n; };
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  var STATE = { transactions: [], info: {} };
+
+  function renderInfo(info){
+    STATE.info = info || {};
+    $('v-mchid').textContent = info.mchid || '—';
+    $('v-appid').textContent = info.appid || '—';
+    $('v-key').textContent = info.apiV3Key || '—';
+    $('v-serial').textContent = info.platformSerial || '—';
+    ['v-mchid','v-appid','v-key','v-serial'].forEach(function(id){
+      var el = $(id);
+      el.setAttribute('data-copy', el.textContent);
+    });
+  }
+
+  function tagOf(state){
+    if (state === 'SUCCESS') return '<span class="tag success">已支付</span>';
+    if (state === 'NOTPAY') return '<span class="tag notpay">待支付</span>';
+    if (state === 'CLOSED') return '<span class="tag closed">已关闭</span>';
+    if (state === 'REFUND') return '<span class="tag refund">已退款</span>';
+    return '<span class="tag closed">' + state + '</span>';
+  }
+
+  function renderTxn(list){
+    STATE.transactions = list || [];
+    var body = $('txn-body');
+    var empty = $('txn-empty');
+    $('txn-count').textContent = STATE.transactions.length ? STATE.transactions.length + ' 笔' : '';
+
+    if (!STATE.transactions.length) {
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    body.innerHTML = STATE.transactions.map(function(t){
+      var paid = t.trade_state === 'SUCCESS' || t.trade_state === 'REFUND';
+      var btns = '';
+      if (t.trade_state === 'NOTPAY') {
+        btns += '<button class="pay" data-act="success" data-no="' + esc(t.out_trade_no) + '">模拟支付成功</button>';
+        btns += '<button data-act="fail" data-no="' + esc(t.out_trade_no) + '">推送失败通知</button>';
+      } else if (paid) {
+        btns += '<button data-act="repeat" data-no="' + esc(t.out_trade_no) + '">重复通知</button>';
+      } else {
+        btns = '<span style="color:var(--ink3);font-size:12px">无操作</span>';
+      }
+      return '<tr>' +
+        '<td class="mono">' + esc(t.out_trade_no) + '</td>' +
+        '<td class="amt">' + money(t.amount && t.amount.total) + '</td>' +
+        '<td>' + tagOf(t.trade_state) + '</td>' +
+        '<td class="mono" style="font-size:11.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (esc(t.notify_url) || '<span style="color:var(--ink3)">未设置</span>') + '</td>' +
+        '<td style="text-align:center">' + (t.notify_count || 0) + '</td>' +
+        '<td><div class="acts">' + btns + '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function renderNotifies(list){
+    var el = $('notify-list');
+    $('notify-count').textContent = (list && list.length) ? list.length + ' 条' : '';
+    if (!list || !list.length) {
+      el.innerHTML = '<div class="empty">还没有推送过回调。</div>';
+      return;
+    }
+    el.innerHTML = list.map(function(n){
+      var okTag = n.ok
+        ? '<span class="tag success">' + n.status + '</span>'
+        : '<span class="tag closed" style="background:var(--badbg);color:var(--bad)">失败</span>';
+      return '<div class="notifyline">' +
+        '<div><div><span class="mono">' + esc(n.event_type) + '</span> · ' + esc(n.out_trade_no) + ' · ' + n.latency + 'ms</div>' +
+        '<div class="u">' + esc(n.url) + (n.error ? ' · ' + esc(n.error) : '') + '</div></div>' +
+        '<div>' + okTag + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderLogs(list){
+    var el = $('log-list');
+    if (!list || !list.length) {
+      el.innerHTML = '<div class="empty">暂无请求</div>';
+      return;
+    }
+    el.innerHTML = list.map(function(l){
+      var cls = l.status >= 500 ? 's5' : l.status >= 400 ? 's4' : 's2';
+      return '<div class="logline">' +
+        '<span class="t">' + timeStr(l.ts) + '</span>' +
+        '<span class="m">' + esc(l.method) + '</span>' +
+        '<span class="p" title="' + esc(l.path) + '">' + esc(l.path) + '</span>' +
+        '<span class="s ' + cls + '">' + l.status + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function refresh(){
+    fetch('/__api/state', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        renderInfo(d.info);
+        renderTxn(d.transactions);
+        renderNotifies(d.notifies);
+        renderLogs(d.logs);
+      })
+      .catch(function(){ /* 网络抖动忽略，下次再刷 */ });
+  }
+
+  function trigger(no, mode, btn){
+    btn.disabled = true;
+    fetch('/__api/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ out_trade_no: no, mode: mode })
+    })
+      .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+      .then(function(res){
+        toast(res.d.message || (res.ok ? '已触发' : '触发失败'), !res.ok);
+        refresh();
+      })
+      .catch(function(){ toast('请求失败，检查服务是否还在跑', true); })
+      .finally(function(){ btn.disabled = false; });
+  }
+
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-act]');
+    if (btn) {
+      trigger(btn.getAttribute('data-no'), btn.getAttribute('data-act'), btn);
+      return;
+    }
+    var copyEl = e.target.closest('[data-copy]');
+    if (copyEl) copy(copyEl.getAttribute('data-copy'));
+  });
+
+  refresh();
+  setInterval(refresh, 2000);
+})();
+</script>
+</body>
+</html>
