@@ -7,23 +7,21 @@ npx paymock wechat
 ```
 
 ```
-  paymock  v0.1.0
-
-  本地微信支付 v3 网关已启动
-
-  Base URL     http://localhost:4010
-  可视化面板    http://localhost:4010/__panel
-  商户号       1900000001
-  AppID        wxdemo0000000001
-  APIv3 密钥   7f3a9c2e1b8d4f6a0c5e2d9b7a1f3e8c
-
-  把你的微信支付 API 地址从
-    https://api.mch.weixin.qq.com
-  改成
-    http://localhost:4010
-
-  下单后打开面板，点「支付成功」就会给 notify_url 发一条带真实签名的回调。
+──────────────────────────────────────────────────────────
+  paymock v0.1.2  本地假微信支付已启动
+──────────────────────────────────────────────────────────
+  接口地址   http://localhost:4010
+  控制台     http://localhost:4010/__panel
+  商户号     1900000001
+  appid      wxdemo0000000001
+  APIv3密钥  7f3a9c2e1b8d4f6a0c5e2d9b7a1f3e8c
+  平台序列号 5A1B2C3D4E5F60718293A4B5C6D7E8F901234567
+──────────────────────────────────────────────────────────
+把代码里的 baseURL 换成上面的接口地址，就能下单了。
+Ctrl+C 停止。数据只存在内存里，重启即清空。
 ```
+
+把微信支付 API 地址从 `https://api.mch.weixin.qq.com` 换成 `http://localhost:4010`，下单后打开面板点「支付成功」，你的 `notify_url` 就会收到一条带真实签名的回调。
 
 ## 解决什么问题
 
@@ -46,7 +44,7 @@ npx paymock wechat
 默认端口 4010，密钥随机生成。想固定就传参数：
 
 ```bash
-npx paymock wechat --port 4010 --mchid 1900000001 --apiv3key your32bytekey000000000000000000
+npx paymock wechat --port 4010 --mchid 1900000001 --key your32bytekey0000000000000000000
 ```
 
 ### 2. 改一行配置
@@ -121,7 +119,7 @@ Wechatpay-Serial: 5A1B2C3D4E5F60718293A4B5C6D7E8F901234567
 ## 命令行
 
 ```bash
-paymock wechat [--port 4010] [--mchid 1900000001] [--appid wxdemo...] [--apiv3key xxx]
+paymock wechat [--port 4010] [--mchid 1900000001] [--appid wxdemo...] [--key 32位密钥]
 paymock trigger <out_trade_no> [--mode success|fail|repeat|delay] [--port 4010]
 paymock info [--port 4010]
 paymock --help

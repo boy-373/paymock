@@ -69,6 +69,58 @@ function parseArgs(argv) {
   return out;
 }
 
+/* 每个子命令认哪些参数 */
+const KNOWN_ARGS = {
+  wechat: ['port', 'key', 'mchid', 'appid', 'quiet'],
+  wx: ['port', 'key', 'mchid', 'appid', 'quiet'],
+  trigger: ['mode', 'port'],
+  info: ['port'],
+};
+
+/* 常见写错的参数名 → 正确名（老文档、手滑都能兜住） */
+const ARG_ALIAS = {
+  apiv3key: 'key',
+  'api-v3-key': 'key',
+  api_v3_key: 'key',
+  apiv3: 'key',
+  apikey: 'key',
+  'api-key': 'key',
+  secret: 'key',
+};
+
+/**
+ * 未知参数不再静默吞掉：能纠正的纠正并提示，纠正不了的直接报出来。
+ * 之前 --apiv3key 被无声忽略，用户拿着 README 敲命令会莫名其妙用上随机密钥。
+ */
+function validateArgs(args, cmd) {
+  const allowed = KNOWN_ARGS[cmd] || [];
+  const bad = Object.keys(args).filter(
+    (k) => k !== '_' && k !== 'help' && k !== 'version' && !allowed.includes(k)
+  );
+  if (!bad.length) return;
+
+  for (const k of bad) {
+    const right = ARG_ALIAS[String(k).toLowerCase()];
+    if (right) {
+      if (args[right] === undefined && args[k] !== true) {
+        args[right] = args[k];
+        console.error(
+          `${COLORS.yellow}注意${COLORS.reset} --${k} 不是有效参数，已按 ${COLORS.cyan}--${right}${COLORS.reset} 处理。`
+        );
+      } else {
+        console.error(
+          `${COLORS.yellow}注意${COLORS.reset} --${k} 不是有效参数，已忽略。你是不是想用 ${COLORS.cyan}--${right}${COLORS.reset}？`
+        );
+      }
+    } else {
+      console.error(
+        `${COLORS.red}未知参数 --${k}，已忽略。${COLORS.reset}可用参数: ${allowed.map((x) => '--' + x).join(' ') || '（无）'}`
+      );
+    }
+    delete args[k];
+  }
+}
+
 function banner(info, port) {
   const c = COLORS;
   const line = '─'.repeat(58);
@@ -174,6 +226,7 @@ async function main() {
   }
 
   const cmd = args._[0];
+  if (KNOWN_ARGS[cmd]) validateArgs(args, cmd);
   try {
     if (cmd === 'wechat' || cmd === 'wx') await cmdWechat(args);
     else if (cmd === 'trigger') await cmdTrigger(args);

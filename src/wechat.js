@@ -24,6 +24,7 @@ class WeChatMock {
    * @param {string} [opts.apiV3Key] 固定 APIv3 密钥，不传则每次启动随机生成
    * @param {string} [opts.mchid]
    * @param {string} [opts.appid]
+   * @param {number} [opts.port] 监听端口，用于拼 baseURL
    * @param {(msg: string, level?: string) => void} [opts.log]
    */
   constructor(opts) {
@@ -31,6 +32,7 @@ class WeChatMock {
     this.log = opts.log || (() => {});
     this.mchid = opts.mchid || '1900000001';
     this.appid = opts.appid || 'wxdemo0000000001';
+    this.port = opts.port || 4010;
 
     // 平台侧密钥对：回调签名用私钥，商户用公钥验签
     const kp = newKeyPair();
@@ -50,7 +52,7 @@ class WeChatMock {
       apiV3Key: this.apiV3Key,
       platformSerial: this.platformSerial,
       platformPublicKey: this.platformPublicKey,
-      baseURL: 'http://localhost:4010',
+      baseURL: `http://localhost:${this.port}`,
     };
   }
 

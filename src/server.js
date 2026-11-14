@@ -86,6 +86,7 @@ async function start(opts = {}) {
   const store = new Store();
   const wechat = new WeChatMock({
     store,
+    port,
     apiV3Key: opts.apiV3Key,
     mchid: opts.mchid,
     appid: opts.appid,

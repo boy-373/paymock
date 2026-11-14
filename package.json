@@ -1,6 +1,6 @@
 {
   "name": "paymock",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "本地假微信支付：不用内网穿透、不用真商户号，在自己电脑上把支付流程跑通",
   "keywords": [
     "wechatpay",
@@ -13,6 +13,14 @@
   ],
   "license": "MIT",
   "author": "刘扶阳 <1561852680@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boy-373/paymock.git"
+  },
+  "homepage": "https://github.com/boy-373/paymock#readme",
+  "bugs": {
+    "url": "https://github.com/boy-373/paymock/issues"
+  },
   "type": "commonjs",
   "bin": {
     "paymock": "bin/paymock.js"
